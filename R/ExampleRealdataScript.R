@@ -1,9 +1,27 @@
 # LCV example script written by Katie Siewert
+if(!require(optparse)){
+    install.packages("optparse")
+    library(optparse)
+}
+option_list = list(
+  make_option("--sum_stat_name1", type="character", default="s1.txt",
+              help="First GWAS summary statistics file name", metavar="character"),
+  make_option("--sum_stat_name2", type="character", default="s2.txt",
+              help="Second GWAS summary statistics file name", metavar="character"),
+  make_option("--ld_score_file_name", type="character", default="ldscorefile",
+              help="the file of ldscore", metavar="character")
+);
+
+opt_parser = OptionParser(option_list=option_list);
+opt = parse_args(opt_parser);
 
 #Start with data munged using the ldsc package
-trait1File=".../my_trait1_summary_statistics_munged.sumstats.gz"
+trait1File = opt$sum_stat_name1;
+trait2File = opt$sum_stat_name2;
+ldscoresFile = opt$ld_score_file_name
 
-trait2File=".../my_trait2_summary_statistics_munged.sumstats.gz"
+print(trait1File)
+print(trait2File)
 
 #Load trait 1 data and calculate Zs
 d1 = na.omit(read.table(gzfile(trait1File),header=TRUE,sep="\t",stringsAsFactors = FALSE))
@@ -12,15 +30,14 @@ d1 = na.omit(read.table(gzfile(trait1File),header=TRUE,sep="\t",stringsAsFactors
 d2 = na.omit(read.table(gzfile(trait2File),header=TRUE,sep="\t",stringsAsFactors = FALSE))
 
 #Load LD scores
-ldscoresFile="".../unannotated_LDscores.l2.ldsc""
-d3=read.table("~/Dropbox/MR/Katie/NoAnnot.l2.ldsc",header=TRUE,sep=' ',stringsAsFactors=FALSE)
+d3=read.table(gzfile(ldscoresFile), header=TRUE, sep='\t', stringsAsFactors=FALSE)
 
 #Merge
 m = merge(d3,d1,by="SNP")
 data = merge(m,d2,by="SNP")
 
-#Sort by position 
-data = m2[order(m2[,"CHR"],m2[,"BP"]),]
+#Sort by position
+data = data[order(data[,"CHR"],data[,"BP"]),]
 
 #Flip sign of one z-score if opposite alleles-shouldn't occur with UKB data
 #If not using munged data, will have to check that alleles match-not just whether they're opposite A1/A2
@@ -31,9 +48,9 @@ data[mismatch,]$A2.y = data[mismatch,]$A2.x
 
 
 #Run LCV-need to setwd to directory containing LCV package
-setwd(".../LCV/")
-source(".../LCV/RunLCV.R")
-
+source("RunLCV.R")
+print(sum(data$Z.x))
+print(sum(data$Z.y))
 LCV = RunLCV(data$L2,data$Z.x,data$Z.y)
 sprintf("Estimated posterior gcp=%.2f(%.2f), log10(p)=%.1f; estimated rho=%.2f(%.2f)",LCV$gcp.pm, LCV$gcp.pse, log(LCV$pval.gcpzero.2tailed)/log(10), LCV$rho.est, LCV$rho.err)
 
